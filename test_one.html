@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Website</title>
+</head>
+<body>
+    <h1>Welcome to my website</h1>
+    <!-- RAG Chatbot Widget -->
+<div id="rag-chatbot-widget"></div>
+<script>
+  (function() {
+    const jobId = 10;
+    const apiUrl = 'http://127.0.0.1:8000';
+    
+    const styles = `
+      #rag-chatbot-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      #rag-chatbot-button {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #134686, #ED3F27);
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s;
+      }
+      #rag-chatbot-button:hover {
+        transform: scale(1.05);
+      }
+      #rag-chatbot-button svg {
+        width: 30px;
+        height: 30px;
+        fill: white;
+      }
+      #rag-chatbot-window {
+        position: absolute;
+        bottom: 80px;
+        right: 0;
+        width: 380px;
+        height: 500px;
+        background: #FDF4E3;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #rag-chatbot-window.open {
+        display: flex;
+      }
+      #rag-chatbot-header {
+        background: linear-gradient(135deg, #134686, #ED3F27);
+        color: white;
+        padding: 16px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      #rag-chatbot-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+      }
+      #rag-chatbot-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .rag-message {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        word-wrap: break-word;
+      }
+      .rag-message.user {
+        background: #134686;
+        color: white;
+        align-self: flex-end;
+        margin-left: auto;
+      }
+      .rag-message.bot {
+        background: white;
+        color: #134686;
+        align-self: flex-start;
+        border: 1px solid #134686;
+      }
+      #rag-chatbot-input-container {
+        padding: 16px;
+        border-top: 1px solid #134686;
+        display: flex;
+        gap: 8px;
+      }
+      #rag-chatbot-input {
+        flex: 1;
+        padding: 10px;
+        border: 2px solid #134686;
+        border-radius: 8px;
+        background: white;
+        color: #134686;
+        font-size: 14px;
+      }
+      #rag-chatbot-send {
+        padding: 10px 20px;
+        background: #134686;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      #rag-chatbot-send:hover {
+        background: #ED3F27;
+      }
+      #rag-chatbot-send:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+    `;
+    
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = styles;
+    document.head.appendChild(styleSheet);
+    
+    const container = document.createElement('div');
+    container.id = 'rag-chatbot-container';
+    container.innerHTML = `
+      <button id="rag-chatbot-button">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+        </svg>
+      </button>
+      <div id="rag-chatbot-window">
+        <div id="rag-chatbot-header">
+          <span>Ask me anything</span>
+          <button id="rag-chatbot-close">&times;</button>
+        </div>
+        <div id="rag-chatbot-messages"></div>
+        <div id="rag-chatbot-input-container">
+          <input type="text" id="rag-chatbot-input" placeholder="Type your message...">
+          <button id="rag-chatbot-send">Send</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(container);
+    
+    const button = document.getElementById('rag-chatbot-button');
+    const window = document.getElementById('rag-chatbot-window');
+    const closeBtn = document.getElementById('rag-chatbot-close');
+    const input = document.getElementById('rag-chatbot-input');
+    const sendBtn = document.getElementById('rag-chatbot-send');
+    const messages = document.getElementById('rag-chatbot-messages');
+    
+    let conversationHistory = [];
+    
+    button.addEventListener('click', () => window.classList.add('open'));
+    closeBtn.addEventListener('click', () => window.classList.remove('open'));
+    
+    function addMessage(text, isUser) {
+      const msg = document.createElement('div');
+      msg.className = `rag-message ${isUser ? 'user' : 'bot'}`;
+      msg.textContent = text;
+      messages.appendChild(msg);
+      messages.scrollTop = messages.scrollHeight;
+    }
+    
+    async function sendMessage() {
+      const message = input.value.trim();
+      if (!message) return;
+      
+      addMessage(message, true);
+      input.value = '';
+      sendBtn.disabled = true;
+      
+      conversationHistory.push({ role: 'user', content: message });
+      
+      try {
+        const response = await fetch(`${apiUrl}/api/chatbot/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_id: jobId,
+            message: message,
+            conversation_history: conversationHistory
+          })
+        });
+        
+        const data = await response.json();
+        addMessage(data.response, false);
+        conversationHistory.push({ role: 'assistant', content: data.response });
+      } catch (error) {
+        addMessage('Sorry, I encountered an error. Please try again.', false);
+      } finally {
+        sendBtn.disabled = false;
+      }
+    }
+    
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+    
+    addMessage('Hello! How can I help you today?', false);
+  })();
+</script>
+</body>
+</html>
