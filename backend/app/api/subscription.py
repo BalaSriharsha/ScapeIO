@@ -4,7 +4,7 @@ from typing import List
 from app.database import get_db
 from app.models import User, SubscriptionPlan
 from app.schemas import SubscriptionPlanResponse, EnterpriseContactRequest
-from app.security import get_current_user
+from app.clerk_security import get_current_user_from_clerk as get_current_user
 
 router = APIRouter()
 

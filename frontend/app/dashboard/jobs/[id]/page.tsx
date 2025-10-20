@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import { scraperAPI } from '@/lib/api'
-import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Globe, Clock, CheckCircle, XCircle, Loader2, FileText, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
@@ -36,25 +36,12 @@ interface ScrapedPage {
 export default function JobDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const { isAuthenticated } = useAuthStore()
+  const { isLoaded, isSignedIn } = useUser()
   const jobId = parseInt(params.id as string)
   const [job, setJob] = useState<Job | null>(null)
   const [pages, setPages] = useState<ScrapedPage[]>([])
   const [loading, setLoading] = useState(true)
   const [showPages, setShowPages] = useState(false)
-  const [mounted, setMounted] = useState(false)
-
-  // Check authentication on mount
-  useEffect(() => {
-    setMounted(true)
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        router.push('/auth/login')
-        return
-      }
-    }
-  }, [router])
 
   const fetchJob = async () => {
     try {
@@ -97,21 +84,34 @@ export default function JobDetailPage() {
   }
 
   useEffect(() => {
-    if (!mounted) return
-    
-    fetchJob()
-    fetchPages()
+    if (isLoaded && isSignedIn) {
+      fetchJob()
+      fetchPages()
+    }
+  }, [isLoaded, isSignedIn, jobId])
 
+  useEffect(() => {
     // Poll for updates every 2 seconds if job is in progress
+    if (!job) return
+
     const interval = setInterval(() => {
-      if (job && (job.status === 'discovering' || job.status === 'scraping' || job.status === 'processing')) {
+      if (job.status === 'discovering' || job.status === 'scraping' || job.status === 'processing') {
         fetchJob()
         fetchPages()
       }
     }, 2000)
 
     return () => clearInterval(interval)
-  }, [mounted, jobId, job?.status])
+  }, [job?.status])
+
+  // Clerk authentication check - AFTER all hooks
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={48} />
+      </div>
+    )
+  }
 
   const getPageStatusIcon = (status: string) => {
     switch (status) {
@@ -175,7 +175,7 @@ export default function JobDetailPage() {
     return Math.round((job.pages_scraped / job.pages_found) * 90) + 10
   }
 
-  if (!mounted || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={48} />

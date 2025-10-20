@@ -10,6 +10,12 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     FRONTEND_URL: str = "http://localhost:3000"
     
+    # Clerk Configuration
+    CLERK_PUBLISHABLE_KEY: Optional[str] = None
+    CLERK_SECRET_KEY: Optional[str] = None
+    CLERK_WEBHOOK_SECRET: Optional[str] = None
+    CLERK_DOMAIN: Optional[str] = None
+    
     class Config:
         env_file = ".env"
 

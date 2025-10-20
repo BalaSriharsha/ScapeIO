@@ -1,28 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/store'
+import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
 import { ArrowRight, Zap, Shield, BarChart3, Globe, CheckCircle, Sparkles } from 'lucide-react'
 
 export default function LandingPage() {
   const router = useRouter()
-  const { isAuthenticated } = useAuthStore()
-  const [mounted, setMounted] = useState(false)
+  const { isLoaded, isSignedIn } = useUser()
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!mounted) return
-    
-    const token = localStorage.getItem('token')
-    if (token && isAuthenticated) {
+    if (isLoaded && isSignedIn) {
       router.push('/dashboard')
     }
-  }, [mounted, isAuthenticated, router])
+  }, [isLoaded, isSignedIn, router])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FDF4E3] via-white to-[#FDF4E3]">

@@ -6,7 +6,7 @@ from typing import List
 from app.database import get_db
 from app.models import User, ScrapingJob, ScrapedPage, ScrapedData, SubscriptionPlan
 from app.schemas import ScrapingJobCreate, ScrapingJobResponse, ScrapedPageResponse
-from app.security import get_current_user
+from app.clerk_security import get_current_user_from_clerk as get_current_user
 from app.services.scraper_service import start_scraping_job
 from app.services.markdown_service import create_markdown_document, create_single_page_markdown
 from app.utils.encryption import encrypt_credentials

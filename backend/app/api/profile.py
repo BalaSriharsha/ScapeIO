@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
 from app.schemas import UserResponse, ProfileUpdate, PasswordChange
-from app.security import get_current_user, get_password_hash, verify_password
+from app.clerk_security import get_current_user_from_clerk as get_current_user
+from app.security import get_password_hash, verify_password
 
 router = APIRouter()
 

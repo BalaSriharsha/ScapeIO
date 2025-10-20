@@ -4,7 +4,7 @@ from typing import Optional
 from app.database import get_db
 from app.models import User, ScrapingJob
 from app.schemas import ChatbotEmbedRequest, ChatbotEmbedResponse, ChatRequest, ChatResponse
-from app.security import get_current_user, get_current_user_optional
+from app.clerk_security import get_current_user_from_clerk as get_current_user, get_current_user_optional
 from app.services.chatbot_service import generate_embed_code, get_chat_response
 
 router = APIRouter()

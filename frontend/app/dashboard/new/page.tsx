@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import { useForm } from 'react-hook-form'
 import { scraperAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Globe } from 'lucide-react'
+import { ArrowLeft, Globe, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
 interface JobForm {
@@ -19,27 +20,26 @@ interface JobForm {
 
 export default function NewJobPage() {
   const router = useRouter()
+  const { isLoaded, isSignedIn } = useUser()
   const [loading, setLoading] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [customFields, setCustomFields] = useState<{name: string, value: string}[]>([])
-  const [mounted, setMounted] = useState(false)
   const { register, handleSubmit, formState: { errors }, watch } = useForm<JobForm>({
     defaultValues: {
       depth: 2
     }
   })
 
-  // Check authentication on mount
-  useEffect(() => {
-    setMounted(true)
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        router.push('/auth/login')
-        return
-      }
-    }
-  }, [router])
+  // Clerk will handle authentication via middleware
+  // No need to check localStorage
+  
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={48} />
+      </div>
+    )
+  }
 
   const onSubmit = async (data: JobForm) => {
     setLoading(true)
@@ -89,14 +89,6 @@ export default function NewJobPage() {
   }
   
   const depthValue = watch('depth', 2)
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-[#FDF4E3]">
