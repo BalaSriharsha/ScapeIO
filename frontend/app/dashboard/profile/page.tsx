@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
 import { profileAPI, scraperAPI, analyticsAPI, subscriptionAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -40,6 +41,7 @@ interface Plan {
 
 export default function ProfilePage() {
   const router = useRouter()
+  const { isLoaded, isSignedIn } = useUser()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [stats, setStats] = useState<UserStats | null>(null)
   const [plans, setPlans] = useState<Plan[]>([])
@@ -47,6 +49,12 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [showPlans, setShowPlans] = useState(false)
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/')
+    }
+  }, [isLoaded, isSignedIn, router])
   
   const [profileData, setProfileData] = useState({
     full_name: '',

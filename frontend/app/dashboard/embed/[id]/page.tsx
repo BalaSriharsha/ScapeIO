@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import { chatbotAPI, scraperAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Copy, CheckCircle, Loader2 } from 'lucide-react'
@@ -10,6 +11,7 @@ import Link from 'next/link'
 export default function EmbedCodePage() {
   const params = useParams()
   const router = useRouter()
+  const { isLoaded, isSignedIn } = useUser()
   const jobId = parseInt(params.id as string)
   const [embedCode, setEmbedCode] = useState('')
   const [loading, setLoading] = useState(true)
@@ -17,8 +19,14 @@ export default function EmbedCodePage() {
   const [job, setJob] = useState<any>(null)
 
   useEffect(() => {
-    loadEmbedCode()
-  }, [jobId])
+    if (isLoaded && !isSignedIn) {
+      router.push('/')
+      return
+    }
+    if (isLoaded && isSignedIn) {
+      loadEmbedCode()
+    }
+  }, [isLoaded, isSignedIn, jobId, router])
 
   const loadEmbedCode = async () => {
     try {

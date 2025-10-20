@@ -44,15 +44,12 @@ export default function Navbar() {
             Vittas
           </Link>
 
-          <div className="flex items-center gap-6">
-            {isSignedIn ? (
-              <>
-                <Link href="/dashboard" className="hover:text-[#FEB21A] transition">
-                  Dashboard
-                </Link>
-                <Link href="/pricing" className="hover:text-[#FEB21A] transition">
-                  Pricing
-                </Link>
+        <div className="flex items-center gap-6">
+          {isSignedIn ? (
+            <>
+              <Link href="/dashboard" className="hover:text-[#FEB21A] transition">
+                Dashboard
+              </Link>
                 
                 <div className="relative" ref={dropdownRef}>
                   <button

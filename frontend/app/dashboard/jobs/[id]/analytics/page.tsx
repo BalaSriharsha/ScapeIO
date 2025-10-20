@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
 import { analyticsAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -19,13 +20,21 @@ interface Analytics {
 
 export default function JobAnalyticsPage() {
   const params = useParams()
+  const router = useRouter()
+  const { isLoaded, isSignedIn } = useUser()
   const jobId = parseInt(params.id as string)
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchAnalytics()
-  }, [jobId])
+    if (isLoaded && !isSignedIn) {
+      router.push('/')
+      return
+    }
+    if (isLoaded && isSignedIn) {
+      fetchAnalytics()
+    }
+  }, [isLoaded, isSignedIn, jobId, router])
 
   const fetchAnalytics = async () => {
     try {

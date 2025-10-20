@@ -30,8 +30,11 @@ export default function NewJobPage() {
     }
   })
 
-  // Clerk will handle authentication via middleware
-  // No need to check localStorage
+         useEffect(() => {
+           if (isLoaded && !isSignedIn) {
+             router.push('/')
+           }
+         }, [isLoaded, isSignedIn, router])
   
   if (!isLoaded) {
     return (

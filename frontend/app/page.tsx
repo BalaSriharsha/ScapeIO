@@ -214,25 +214,69 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#134686] text-white py-8">
-        <div className="container mx-auto px-6 text-center">
-          <p className="mb-4">&copy; 2025 Vittas. All rights reserved.</p>
-          <div className="flex justify-center gap-6 text-sm opacity-75">
-            <Link href="/pricing" className="hover:text-[#FEB21A] transition">
-              Pricing
-            </Link>
-            <span>•</span>
-            <Link href="/terms" className="hover:text-[#FEB21A] transition">
-              Terms of Service
-            </Link>
-            <span>•</span>
-            <Link href="/privacy" className="hover:text-[#FEB21A] transition">
-              Privacy Policy
-            </Link>
-            <span>•</span>
-            <a href="mailto:support@vittas.com" className="hover:text-[#FEB21A] transition">
-              Support
-            </a>
+      <footer className="bg-[#134686] text-white py-12">
+        <div className="container mx-auto px-6">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            {/* Company Info */}
+            <div>
+              <h3 className="text-xl font-bold mb-4">Vittas</h3>
+              <p className="text-white/70 text-sm">
+                AI-powered web scraping and RAG chatbot platform. Turn any website into an intelligent chatbot.
+              </p>
+            </div>
+
+            {/* Product */}
+            <div>
+              <h4 className="font-semibold mb-4">Product</h4>
+              <ul className="space-y-2 text-sm text-white/70">
+                <li>
+                  <Link href="/pricing" className="hover:text-[#FEB21A] transition">
+                    Pricing
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/auth/register" className="hover:text-[#FEB21A] transition">
+                    Get Started
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="font-semibold mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm text-white/70">
+                <li>
+                  <Link href="/terms" className="hover:text-[#FEB21A] transition">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="hover:text-[#FEB21A] transition">
+                    Privacy Policy
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Support */}
+            <div>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <ul className="space-y-2 text-sm text-white/70">
+                <li>
+                  <a href="mailto:support@vittas.com" className="hover:text-[#FEB21A] transition">
+                    Email Support
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="border-t border-white/20 pt-8 text-center">
+            <p className="text-white/70 text-sm">
+              &copy; 2025 Vittas. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>

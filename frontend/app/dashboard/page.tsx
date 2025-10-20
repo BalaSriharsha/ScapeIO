@@ -25,10 +25,16 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (isLoaded && isSignedIn) {
+    if (isLoaded) {
+      if (!isSignedIn) {
+        // User is not authenticated, redirect to landing page
+        router.push('/')
+        return
+      }
+      // User is authenticated, load jobs
       loadJobs()
     }
-  }, [isLoaded, isSignedIn])
+  }, [isLoaded, isSignedIn, router])
 
   const loadJobs = async () => {
     try {
@@ -68,7 +74,17 @@ export default function DashboardPage() {
     }
   }
 
+  // Show loading while Clerk is initializing or data is being fetched
   if (!isLoaded || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={48} />
+      </div>
+    )
+  }
+
+  // If not signed in at this point, show loading (redirect is happening)
+  if (!isSignedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={48} />
