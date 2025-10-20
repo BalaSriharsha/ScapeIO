@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import Link from 'next/link'
@@ -9,14 +9,20 @@ import { ArrowRight, Zap, Shield, BarChart3, Globe, CheckCircle, Sparkles } from
 export default function LandingPage() {
   const router = useRouter()
   const { isAuthenticated } = useAuthStore()
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    // If user is authenticated, redirect to dashboard
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    
     const token = localStorage.getItem('token')
     if (token && isAuthenticated) {
       router.push('/dashboard')
     }
-  }, [isAuthenticated, router])
+  }, [mounted, isAuthenticated, router])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FDF4E3] via-white to-[#FDF4E3]">
@@ -222,6 +228,14 @@ export default function LandingPage() {
           <div className="flex justify-center gap-6 text-sm opacity-75">
             <Link href="/pricing" className="hover:text-[#FEB21A] transition">
               Pricing
+            </Link>
+            <span>•</span>
+            <Link href="/terms" className="hover:text-[#FEB21A] transition">
+              Terms of Service
+            </Link>
+            <span>•</span>
+            <Link href="/privacy" className="hover:text-[#FEB21A] transition">
+              Privacy Policy
             </Link>
             <span>•</span>
             <a href="mailto:support@vittas.com" className="hover:text-[#FEB21A] transition">

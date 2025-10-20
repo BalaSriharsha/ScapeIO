@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
@@ -6,7 +7,8 @@ from app.database import get_db
 from app.models import User, ScrapingJob, ScrapedPage, ScrapedData, SubscriptionPlan
 from app.schemas import ScrapingJobCreate, ScrapingJobResponse, ScrapedPageResponse
 from app.security import get_current_user
-from app.services.scraper_service import scrape_website
+from app.services.scraper_service import start_scraping_job
+from app.services.markdown_service import create_markdown_document, create_single_page_markdown
 from app.utils.encryption import encrypt_credentials
 
 router = APIRouter()
@@ -14,7 +16,6 @@ router = APIRouter()
 @router.post("/jobs", response_model=ScrapingJobResponse, status_code=status.HTTP_201_CREATED)
 async def create_scraping_job(
     job_data: ScrapingJobCreate,
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -94,7 +95,8 @@ async def create_scraping_job(
     db.commit()
     db.refresh(new_job)
     
-    background_tasks.add_task(scrape_website, new_job.id, db)
+    # Start scraping in a separate process to avoid blocking the server
+    start_scraping_job(new_job.id)
     
     return new_job
 
@@ -170,4 +172,133 @@ async def get_job_pages(
     ).order_by(ScrapedPage.depth, ScrapedPage.scraped_at).all()
     
     return pages
+
+@router.get("/jobs/{job_id}/export/markdown")
+async def export_job_as_markdown(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Export a completed scraping job as a markdown file"""
+    
+    # Verify job belongs to user
+    job = db.query(ScrapingJob).filter(
+        ScrapingJob.id == job_id,
+        ScrapingJob.user_id == current_user.id
+    ).first()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+    
+    if job.status != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job must be completed before exporting"
+        )
+    
+    # Get all scraped data for this job
+    scraped_data = db.query(ScrapedData).filter(
+        ScrapedData.job_id == job_id
+    ).all()
+    
+    if not scraped_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No scraped data found for this job"
+        )
+    
+    # Get pages with their depth information
+    pages_data = []
+    for data in scraped_data:
+        # Find corresponding page info
+        page_info = db.query(ScrapedPage).filter(
+            ScrapedPage.job_id == job_id,
+            ScrapedPage.url == data.url
+        ).first()
+        
+        pages_data.append({
+            'url': data.url,
+            'content': data.content,
+            'depth': page_info.depth if page_info else 0
+        })
+    
+    # Sort by depth and URL
+    pages_data.sort(key=lambda x: (x['depth'], x['url']))
+    
+    # Create markdown document
+    markdown_content = create_markdown_document(
+        job_name=job.job_name,
+        website_url=job.website_url,
+        scraped_pages=pages_data,
+        include_metadata=True
+    )
+    
+    # Create safe filename
+    safe_filename = "".join(c for c in job.job_name if c.isalnum() or c in (' ', '-', '_')).strip()
+    safe_filename = safe_filename.replace(' ', '_')
+    filename = f"{safe_filename}_{job_id}.md"
+    
+    # Return as downloadable file
+    return Response(
+        content=markdown_content,
+        media_type="text/markdown",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+@router.get("/jobs/{job_id}/pages/{page_id}/export/markdown")
+async def export_single_page_as_markdown(
+    job_id: int,
+    page_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Export a single scraped page as markdown"""
+    
+    # Verify job belongs to user
+    job = db.query(ScrapingJob).filter(
+        ScrapingJob.id == job_id,
+        ScrapingJob.user_id == current_user.id
+    ).first()
+    
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found"
+        )
+    
+    # Get the specific page data
+    page_data = db.query(ScrapedData).filter(
+        ScrapedData.id == page_id,
+        ScrapedData.job_id == job_id
+    ).first()
+    
+    if not page_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Page not found"
+        )
+    
+    # Create markdown for single page
+    markdown_content = create_single_page_markdown(
+        url=page_data.url,
+        content=page_data.content
+    )
+    
+    # Create safe filename from URL
+    url_parts = page_data.url.split('/')
+    page_name = url_parts[-1] if url_parts[-1] else 'index'
+    filename = f"{page_name}_{page_id}.md"
+    
+    return Response(
+        content=markdown_content,
+        media_type="text/markdown",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
 

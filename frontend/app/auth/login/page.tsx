@@ -34,7 +34,9 @@ export default function LoginPage() {
       setAuth(userResponse.data, token)
       
       toast.success('Login successful!')
-      router.push('/dashboard')
+      
+      // Use window.location.href for a hard redirect to ensure state is fresh
+      window.location.href = '/dashboard'
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Login failed')
     } finally {

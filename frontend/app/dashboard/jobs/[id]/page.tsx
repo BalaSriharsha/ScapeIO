@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { scraperAPI } from '@/lib/api'
+import { useAuthStore } from '@/lib/store'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Globe, Clock, CheckCircle, XCircle, Loader2, FileText, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
@@ -35,11 +36,25 @@ interface ScrapedPage {
 export default function JobDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const { isAuthenticated } = useAuthStore()
   const jobId = parseInt(params.id as string)
   const [job, setJob] = useState<Job | null>(null)
   const [pages, setPages] = useState<ScrapedPage[]>([])
   const [loading, setLoading] = useState(true)
   const [showPages, setShowPages] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Check authentication on mount
+  useEffect(() => {
+    setMounted(true)
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        router.push('/auth/login')
+        return
+      }
+    }
+  }, [router])
 
   const fetchJob = async () => {
     try {
@@ -61,7 +76,29 @@ export default function JobDetailPage() {
     }
   }
 
+  const handleExportMarkdown = async () => {
+    try {
+      const response = await scraperAPI.exportJobMarkdown(jobId)
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `${job?.job_name}_${jobId}.md`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      
+      toast.success('Markdown file downloaded!')
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Failed to export markdown')
+    }
+  }
+
   useEffect(() => {
+    if (!mounted) return
+    
     fetchJob()
     fetchPages()
 
@@ -74,7 +111,7 @@ export default function JobDetailPage() {
     }, 2000)
 
     return () => clearInterval(interval)
-  }, [jobId, job?.status])
+  }, [mounted, jobId, job?.status])
 
   const getPageStatusIcon = (status: string) => {
     switch (status) {
@@ -82,6 +119,8 @@ export default function JobDetailPage() {
         return <CheckCircle className="text-green-500" size={16} />
       case 'failed':
         return <XCircle className="text-secondary" size={16} />
+      case 'skipped':
+        return <AlertCircle className="text-yellow-500" size={16} />
       case 'in_progress':
         return <Loader2 className="text-accent animate-spin" size={16} />
       default:
@@ -111,7 +150,7 @@ export default function JobDetailPage() {
       case 'discovering':
         return 'Discovering Pages...'
       case 'scraping':
-        return 'Scraping Content...'
+        return 'Scraping Pages...'
       case 'processing':
         return 'Processing Content...'
       case 'completed':
@@ -127,11 +166,16 @@ export default function JobDetailPage() {
     if (!job) return 0
     if (job.status === 'discovering') return 10
     if (job.status === 'completed') return 100
+    if (job.status === 'scraping' || job.status === 'processing') {
+      if (job.pages_found === 0) return 10
+      const scrapingProgress = Math.round((job.pages_scraped / job.pages_found) * 90)
+      return scrapingProgress + 10
+    }
     if (job.pages_found === 0) return 0
-    return Math.round((job.pages_scraped / job.pages_found) * 90) + 10 // 10% for discovery, 90% for scraping
+    return Math.round((job.pages_scraped / job.pages_found) * 90) + 10
   }
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={48} />
@@ -321,7 +365,13 @@ export default function JobDetailPage() {
           )}
 
           {job.status === 'completed' && (
-            <div className="mt-6 flex justify-center gap-4">
+            <div className="mt-6 flex justify-center gap-4 flex-wrap">
+              <button
+                onClick={handleExportMarkdown}
+                className="px-8 py-3 bg-[#FEB21A] text-[#134686] rounded-lg font-semibold hover:bg-[#FDF4E3] transition flex items-center gap-2"
+              >
+                📄 Export Markdown
+              </button>
               <Link
                 href={`/dashboard/jobs/${job.id}/analytics`}
                 className="inline-block bg-accent text-[#134686] px-8 py-3 rounded-lg font-semibold hover:scale-105 transition"

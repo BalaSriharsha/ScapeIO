@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { scraperAPI } from '@/lib/api'
@@ -22,11 +22,24 @@ export default function NewJobPage() {
   const [loading, setLoading] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [customFields, setCustomFields] = useState<{name: string, value: string}[]>([])
+  const [mounted, setMounted] = useState(false)
   const { register, handleSubmit, formState: { errors }, watch } = useForm<JobForm>({
     defaultValues: {
       depth: 2
     }
   })
+
+  // Check authentication on mount
+  useEffect(() => {
+    setMounted(true)
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        router.push('/auth/login')
+        return
+      }
+    }
+  }, [router])
 
   const onSubmit = async (data: JobForm) => {
     setLoading(true)
@@ -77,9 +90,17 @@ export default function NewJobPage() {
   
   const depthValue = watch('depth', 2)
 
-      return (
-        <div className="min-h-screen bg-[#FDF4E3]">
-          <main className="container mx-auto px-6 py-12">
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FDF4E3]">
+      <main className="container mx-auto px-6 py-12">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-8">
             <Globe size={64} className="mx-auto text-primary mb-4" />

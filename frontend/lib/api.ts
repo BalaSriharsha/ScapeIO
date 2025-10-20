@@ -19,13 +19,33 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Track if we've already shown a logout notification to avoid spam
+let isLoggingOut = false
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token')
-        window.location.href = '/auth/login'
+    // Only auto-logout on 401 if it's not during an active user session
+    // This prevents automatic logouts due to token expiration
+    if (error.response?.status === 401 && !isLoggingOut) {
+      // Check if this is a token expiration or actual unauthorized access
+      const token = localStorage.getItem('token')
+      
+      // If there's a token but it's expired, don't auto-logout
+      // The user should only be logged out when they explicitly logout
+      if (token && error.response?.data?.detail?.includes('expired')) {
+        console.warn('Token expired, but user session maintained')
+        return Promise.reject(error)
+      }
+      
+      // Only auto-logout for actual unauthorized access (no token, invalid token, etc.)
+      // And not for expired tokens
+      if (!token || error.response?.data?.detail?.includes('Invalid')) {
+        if (typeof window !== 'undefined' && !isLoggingOut) {
+          isLoggingOut = true
+          localStorage.removeItem('token')
+          window.location.href = '/auth/login'
+        }
       }
     }
     return Promise.reject(error)
@@ -64,6 +84,16 @@ export const scraperAPI = {
   getJobPages: (id: number) => api.get(`/api/scraper/jobs/${id}/pages`),
   
   deleteJob: (id: number) => api.delete(`/api/scraper/jobs/${id}`),
+  
+  exportJobMarkdown: (id: number) => 
+    api.get(`/api/scraper/jobs/${id}/export/markdown`, {
+      responseType: 'blob'
+    }),
+  
+  exportPageMarkdown: (jobId: number, pageId: number) =>
+    api.get(`/api/scraper/jobs/${jobId}/pages/${pageId}/export/markdown`, {
+      responseType: 'blob'
+    }),
 }
 
 export const chatbotAPI = {

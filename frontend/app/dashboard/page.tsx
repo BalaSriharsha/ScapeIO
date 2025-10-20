@@ -20,11 +20,19 @@ interface Job {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, setAuth, clearAuth, isAuthenticated } = useAuthStore()
+  const { user, setAuth, clearAuth, isAuthenticated, hydrated, setHydrated } = useAuthStore()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
+    setHydrated()
+  }, [setHydrated])
+
+  useEffect(() => {
+    if (!mounted) return
+
     const initAuth = async () => {
       const token = localStorage.getItem('token')
       if (!token) {
@@ -44,13 +52,13 @@ export default function DashboardPage() {
     if (!isAuthenticated) {
       initAuth()
     }
-  }, [isAuthenticated, router, setAuth, clearAuth])
+  }, [mounted, isAuthenticated, router, setAuth, clearAuth])
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (mounted && isAuthenticated) {
       loadJobs()
     }
-  }, [isAuthenticated])
+  }, [mounted, isAuthenticated])
 
   const loadJobs = async () => {
     try {
@@ -95,7 +103,7 @@ export default function DashboardPage() {
     }
   }
 
-  if (!isAuthenticated || loading) {
+  if (!mounted || !hydrated || !isAuthenticated || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={48} />
