@@ -12,12 +12,16 @@ interface AuthState {
   setAuth: (user: User, token: string) => void
   clearAuth: () => void
   isAuthenticated: boolean
+  hydrated: boolean
+  setHydrated: () => void
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
+  token: null,
   isAuthenticated: false,
+  hydrated: false,
+  setHydrated: () => set({ hydrated: true }),
   setAuth: (user, token) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('token', token)

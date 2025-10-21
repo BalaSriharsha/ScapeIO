@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { subscriptionAPI } from '@/lib/api'
+import { subscriptionAPI, getErrorMessage } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { Check, X } from 'lucide-react'
 
@@ -54,7 +54,7 @@ export default function PricingPage() {
       setShowContactForm(false)
       setContactData({ name: '', email: '', company: '', message: '' })
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to submit request')
+      toast.error(getErrorMessage(error) || 'Failed to submit request')
     }
   }
 

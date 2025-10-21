@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/store'
+import { useUser, useClerk } from '@clerk/nextjs'
 import { User, ChevronDown, LogOut, Settings } from 'lucide-react'
 
 export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, isAuthenticated, clearAuth } = useAuthStore()
+  const { user, isSignedIn } = useUser()
+  const { signOut } = useClerk()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -24,8 +25,8 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleLogout = () => {
-    clearAuth()
+  const handleLogout = async () => {
+    await signOut()
     setDropdownOpen(false)
     router.push('/')
   }
@@ -39,19 +40,16 @@ export default function Navbar() {
     <nav className="bg-gradient-to-r from-[#134686] to-[#ED3F27] text-white shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-6 py-4">
         <div className="flex justify-between items-center">
-          <Link href={isAuthenticated ? '/dashboard' : '/'} className="text-2xl font-bold hover:text-[#FEB21A] transition">
+          <Link href={isSignedIn ? '/dashboard' : '/'} className="text-2xl font-bold hover:text-[#FEB21A] transition">
             Vittas
           </Link>
 
-          <div className="flex items-center gap-6">
-            {isAuthenticated ? (
-              <>
-                <Link href="/dashboard" className="hover:text-[#FEB21A] transition">
-                  Dashboard
-                </Link>
-                <Link href="/pricing" className="hover:text-[#FEB21A] transition">
-                  Pricing
-                </Link>
+        <div className="flex items-center gap-6">
+          {isSignedIn ? (
+            <>
+              <Link href="/dashboard" className="hover:text-[#FEB21A] transition">
+                Dashboard
+              </Link>
                 
                 <div className="relative" ref={dropdownRef}>
                   <button
@@ -61,15 +59,15 @@ export default function Navbar() {
                     <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                       <User size={18} />
                     </div>
-                    <span className="text-sm">{user?.username}</span>
+                    <span className="text-sm">{user?.username || user?.firstName}</span>
                     <ChevronDown size={16} className={`transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {dropdownOpen && (
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border-2 border-[#134686]/20 overflow-hidden">
                       <div className="px-4 py-3 border-b border-[#134686]/10">
-                        <p className="text-sm font-medium text-[#134686]">{user?.username}</p>
-                        <p className="text-xs text-[#134686]/60">{user?.email}</p>
+                        <p className="text-sm font-medium text-[#134686]">{user?.username || user?.firstName}</p>
+                        <p className="text-xs text-[#134686]/60">{user?.primaryEmailAddress?.emailAddress}</p>
                       </div>
                       
                       <Link

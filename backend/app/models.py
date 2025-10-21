@@ -29,6 +29,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+    clerk_user_id = Column(String(255), unique=True, index=True, nullable=True)
     full_name = Column(String(255), nullable=True)
     company = Column(String(255), nullable=True)
     phone = Column(String(50), nullable=True)

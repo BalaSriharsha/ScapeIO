@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/store'
-import { scraperAPI, authAPI } from '@/lib/api'
+import { useUser } from '@clerk/nextjs'
+import { scraperAPI } from '@/lib/api'
 import toast from 'react-hot-toast'
-import { Plus, LogOut, Loader2, Globe, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Plus, Loader2, Globe, CheckCircle, XCircle, Clock } from 'lucide-react'
 import Link from 'next/link'
 
 interface Job {
@@ -20,37 +20,21 @@ interface Job {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, setAuth, clearAuth, isAuthenticated } = useAuthStore()
+  const { isLoaded, isSignedIn } = useUser()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const initAuth = async () => {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        router.push('/auth/login')
+    if (isLoaded) {
+      if (!isSignedIn) {
+        // User is not authenticated, redirect to landing page
+        router.push('/')
         return
       }
-
-      try {
-        const response = await authAPI.getMe()
-        setAuth(response.data, token)
-      } catch (error) {
-        clearAuth()
-        router.push('/auth/login')
-      }
-    }
-
-    if (!isAuthenticated) {
-      initAuth()
-    }
-  }, [isAuthenticated, router, setAuth, clearAuth])
-
-  useEffect(() => {
-    if (isAuthenticated) {
+      // User is authenticated, load jobs
       loadJobs()
     }
-  }, [isAuthenticated])
+  }, [isLoaded, isSignedIn, router])
 
   const loadJobs = async () => {
     try {
@@ -61,11 +45,6 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleLogout = () => {
-    clearAuth()
-    router.push('/')
   }
 
   const handleDelete = async (id: number) => {
@@ -95,7 +74,17 @@ export default function DashboardPage() {
     }
   }
 
-  if (!isAuthenticated || loading) {
+  // Show loading while Clerk is initializing or data is being fetched
+  if (!isLoaded || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={48} />
+      </div>
+    )
+  }
+
+  // If not signed in at this point, show loading (redirect is happening)
+  if (!isSignedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={48} />
@@ -133,10 +122,10 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-6">
             {jobs.map((job) => (
-              <Link
+              <div
                 key={job.id}
-                href={`/dashboard/jobs/${job.id}`}
                 className="block bg-white p-6 rounded-lg shadow-lg border-2 border-primary hover:border-secondary transition cursor-pointer"
+                onClick={() => router.push(`/dashboard/jobs/${job.id}`)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -157,16 +146,19 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     {job.status === 'completed' && (
-                      <Link
-                        href={`/dashboard/embed/${job.id}`}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/dashboard/embed/${job.id}`)
+                        }}
                         className="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-dark transition"
                       >
                         Get Embed Code
-                      </Link>
+                      </button>
                     )}
                     <button
                       onClick={(e) => {
-                        e.preventDefault()
+                        e.stopPropagation()
                         handleDelete(job.id)
                       }}
                       className="px-4 py-2 bg-secondary text-white rounded-lg hover:bg-secondary-dark transition"
@@ -175,7 +167,7 @@ export default function DashboardPage() {
                     </button>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
