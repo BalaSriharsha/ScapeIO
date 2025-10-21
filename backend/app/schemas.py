@@ -48,7 +48,7 @@ class TokenData(BaseModel):
 class ScrapingJobCreate(BaseModel):
     website_url: str
     job_name: str
-    depth: int = Field(default=2, ge=1, le=5)
+    depth: int = Field(default=1, ge=0, le=5)
     auth_credentials: Optional[dict] = None
 
 class ScrapingJobResponse(BaseModel):

@@ -68,6 +68,7 @@ func Crawl(db *database.DB, jobID int, baseURL string, maxDepth int, logger *uti
 			&discovered,
 			&discoveredMutex,
 			logger,
+			maxDepth, // Pass maxDepth to function
 		)
 
 		// Filter next level: only URLs at depth+1 that haven't been discovered
@@ -200,6 +201,7 @@ func processLevelInParallel(
 	discovered *map[string]int,
 	mutex *sync.Mutex,
 	logger *utils.Logger,
+	maxDepth int, // Added maxDepth parameter
 ) []URLDepth {
 	var wg sync.WaitGroup
 	resultChan := make(chan []URLDepth, len(urls))
@@ -225,6 +227,13 @@ func processLevelInParallel(
 			mutex.Unlock()
 			logger.Info("Discovered [%d]: %s (depth %d)", count, ud.URL, ud.Depth)
 			db.UpdateJobProgress(jobID, count, 0, ud.URL)
+
+			// DEPTH 0 FIX: Don't extract links if we're at maxDepth
+			if ud.Depth >= maxDepth {
+				logger.Info("Reached maxDepth (%d), not extracting links from %s", maxDepth, ud.URL)
+				resultChan <- []URLDepth{}
+				return
+			}
 
 			// Extract links using browser pool
 			links, err := extractLinksWithPool(browserPool, ud.URL, baseDomain, logger)

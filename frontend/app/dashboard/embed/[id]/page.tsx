@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { chatbotAPI, scraperAPI } from '@/lib/api'
+import { chatbotAPI, scraperAPI, getErrorMessage } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Copy, CheckCircle, Loader2 } from 'lucide-react'
 import Link from 'next/link'
@@ -42,7 +42,7 @@ export default function EmbedCodePage() {
       const response = await chatbotAPI.getEmbedCode(jobId)
       setEmbedCode(response.data.embed_code)
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to load embed code')
+      toast.error(getErrorMessage(error) || 'Failed to load embed code')
       router.push('/dashboard')
     } finally {
       setLoading(false)

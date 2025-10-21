@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
-import { profileAPI, scraperAPI, analyticsAPI, subscriptionAPI } from '@/lib/api'
+import { profileAPI, scraperAPI, analyticsAPI, subscriptionAPI, getErrorMessage } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { ArrowLeft, User as UserIcon, Lock, BarChart3, Loader2, Crown } from 'lucide-react'
 
@@ -128,7 +128,7 @@ export default function ProfilePage() {
       fetchProfile()
       fetchPlans()
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to update plan')
+      toast.error(getErrorMessage(error) || 'Failed to update plan')
     }
   }
 
@@ -140,7 +140,7 @@ export default function ProfilePage() {
       toast.success('Profile updated successfully!')
       fetchProfile()
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to update profile')
+      toast.error(getErrorMessage(error) || 'Failed to update profile')
     } finally {
       setUpdating(false)
     }
@@ -172,7 +172,7 @@ export default function ProfilePage() {
         confirm_password: ''
       })
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to change password')
+      toast.error(getErrorMessage(error) || 'Failed to change password')
     } finally {
       setUpdating(false)
     }

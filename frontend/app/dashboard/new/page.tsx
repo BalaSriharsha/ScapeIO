@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useForm } from 'react-hook-form'
-import { scraperAPI } from '@/lib/api'
+import { scraperAPI, getErrorMessage } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Globe, Loader2 } from 'lucide-react'
 import Link from 'next/link'
@@ -26,7 +26,7 @@ export default function NewJobPage() {
   const [customFields, setCustomFields] = useState<{name: string, value: string}[]>([])
   const { register, handleSubmit, formState: { errors }, watch } = useForm<JobForm>({
     defaultValues: {
-      depth: 2
+      depth: 1
     }
   })
 
@@ -48,18 +48,19 @@ export default function NewJobPage() {
     setLoading(true)
     try {
       // Build auth_credentials if authentication fields are filled
-      let auth_credentials = null
+      let auth_credentials: { [key: string]: string } | null = null
       if (showAuth && (data.auth_username || data.auth_password || customFields.length > 0)) {
-        auth_credentials = {}
-        if (data.auth_username) auth_credentials.username = data.auth_username
-        if (data.auth_password) auth_credentials.password = data.auth_password
+        const credentials: { [key: string]: string } = {}
+        if (data.auth_username) credentials.username = data.auth_username
+        if (data.auth_password) credentials.password = data.auth_password
         
         // Add custom fields
         customFields.forEach(field => {
           if (field.name && field.value) {
-            auth_credentials[field.name] = field.value
+            credentials[field.name] = field.value
           }
         })
+        auth_credentials = credentials
       }
       
       await scraperAPI.createJob({
@@ -71,7 +72,7 @@ export default function NewJobPage() {
       toast.success('Job created successfully! Scraping will begin shortly.')
       router.push('/dashboard')
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to create job')
+      toast.error(getErrorMessage(error) || 'Failed to create job')
     } finally {
       setLoading(false)
     }
@@ -91,7 +92,7 @@ export default function NewJobPage() {
     setCustomFields(updated)
   }
   
-  const depthValue = watch('depth', 2)
+  const depthValue = watch('depth', 1)
 
   return (
     <div className="min-h-screen bg-[#FDF4E3]">
@@ -147,20 +148,23 @@ export default function NewJobPage() {
                 </label>
                 <input
                   type="range"
-                  min="1"
+                  min="0"
                   max="5"
                   {...register('depth', { 
                     valueAsNumber: true,
-                    required: true
+                    required: true,
+                    min: { value: 0, message: 'Minimum depth is 0' }
                   })}
                   className="w-full h-2 bg-primary/20 rounded-lg appearance-none cursor-pointer accent-primary"
                 />
                 <div className="flex justify-between text-xs text-primary/60 mt-1">
-                  <span>Depth 1 (Main page only)</span>
+                  <span>Depth 0 (Single page)</span>
                   <span>Depth 5 (Deep crawl)</span>
                 </div>
                 <p className="text-sm text-primary/60 mt-2">
-                  Controls how many levels of links to follow. Higher depth = more pages scraped (up to 50 pages max)
+                  {depthValue === 0 && "✅ Perfect for LinkedIn profiles - scrapes only the target page, no links followed"}
+                  {depthValue === 1 && "Scrapes the main page plus all direct links found on it"}
+                  {depthValue >= 2 && `Follows links up to ${depthValue} levels deep (up to 50 pages max)`}
                 </p>
               </div>
 

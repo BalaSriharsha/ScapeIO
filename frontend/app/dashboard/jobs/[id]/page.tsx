@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { scraperAPI } from '@/lib/api'
+import { scraperAPI, getErrorMessage } from '@/lib/api'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Globe, Clock, CheckCircle, XCircle, Loader2, FileText, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
@@ -48,7 +48,7 @@ export default function JobDetailPage() {
       const response = await scraperAPI.getJob(jobId)
       setJob(response.data)
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to fetch job details')
+      toast.error(getErrorMessage(error) || 'Failed to fetch job details')
     } finally {
       setLoading(false)
     }
@@ -79,7 +79,7 @@ export default function JobDetailPage() {
       
       toast.success('Markdown file downloaded!')
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to export markdown')
+      toast.error(getErrorMessage(error) || 'Failed to export markdown')
     }
   }
 
